@@ -25,28 +25,34 @@ jobs:
 
       - name: Archive Daily Sites & Reset Landing Page
         run: |
-          # 1. Restore the landing page from template
-          cp assets/landing-template.html index.html
-          
-          # 2. Archive any sites from the generated-sites folder
-          # We move them to an archive folder instead of deleting them
+          # 1. Archive any sites from the generated-sites folder
           DATE_STR=$(date +'%Y%m%d')
-          mkdir -p archive/$DATE_STR
           
           # Check if there are any folders to move (excluding .gitkeep)
           if [ "$(ls -A generated-sites | grep -v '.gitkeep')" ]; then
+            echo "New sites found. Archiving..."
+            mkdir -p archive/$DATE_STR
             mv generated-sites/* archive/$DATE_STR/ 2>/dev/null || true
-            # Restore the .gitkeep if it was accidentally moved
+            # Restore the .gitkeep
             touch generated-sites/.gitkeep
+          else
+            echo "No new sites to archive."
+          fi
+
+          # 2. Check if index.html differs from template
+          if ! cmp -s assets/landing-template.html index.html; then
+            echo "index.html differs from template. Restoring..."
+            cp assets/landing-template.html index.html
+          else
+            echo "index.html is already identical to template."
           fi
           
-          # 3. Commit and Push
+          # 3. Commit and Push ONLY if there are changes
           git add index.html archive/ generated-sites/
           
-          # Only commit if there are changes
           if ! git diff --cached --quiet; then
             git commit -m "Daily Reset: Restored landing page and archived sites for $DATE_STR"
             git push origin main
           else
-            echo "No changes to commit."
+            echo "No changes detected. Skipping commit."
           fi
