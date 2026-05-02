@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const relativePath = path.join('generated-sites', folderName);
     const absolutePath = path.join(process.cwd(), relativePath);
 
+    // Ensure parent directories exist
     if (!fs.existsSync(path.join(process.cwd(), 'generated-sites'))) {
       fs.mkdirSync(path.join(process.cwd(), 'generated-sites'), { recursive: true });
     }
@@ -29,23 +30,35 @@ export async function POST(req: Request) {
 
     // 3. Git operations
     try {
-      // Ensure we are up to date
-      execSync('git pull origin main', { stdio: 'inherit' });
+      // Configure git for this repo if not already set (optional but helpful for automation)
+      // execSync('git config user.name "SiteGen Bot"', { stdio: 'ignore' });
+      // execSync('git config user.email "bot@sitegen.local"', { stdio: 'ignore' });
+
+      // Fetch the latest to avoid conflicts
+      execSync('git fetch origin main', { stdio: 'inherit' });
+      
+      // Attempt to pull, but ignore errors if it's the first time or nothing to merge
+      try {
+        execSync('git pull origin main --rebase', { stdio: 'inherit' });
+      } catch (e) {
+        console.warn('Git pull/rebase warning (likely first run or no changes):', e);
+      }
       
       // Add, commit, push
-      execSync(`git add ${relativePath}`, { stdio: 'inherit' });
+      execSync(`git add "${relativePath}"`, { stdio: 'inherit' });
       execSync(`git commit -m "Add generated site: ${folderName}"`, { stdio: 'inherit' });
       execSync('git push origin main', { stdio: 'inherit' });
-    } catch (gitError) {
-      console.error('Git operation failed:', gitError);
-      // We might proceed if commit fails (e.g. no changes, though unlikely here)
+    } catch (gitError: unknown) {
+      const message = gitError instanceof Error ? gitError.message : 'Unknown Git error';
+      console.error('Git operation failed:', message);
+      // We proceed because the file is still saved locally
     }
 
     // 4. Construct live URL
-    // Assuming GitHub Pages is set up for the repo
-    const username = 'adamjkwong'; // We can potentially detect this via 'gh api user -q .login'
+    const username = 'adamjkwong'; 
     const repo = 'sitegen';
-    const liveUrl = `https://${username}.github.io/${repo}/${relativePath}/`;
+    // GitHub Pages URL structure for project sites: https://<username>.github.io/<repo>/<path>/
+    const liveUrl = `https://${username}.github.io/${repo}/generated-sites/${folderName}/`;
 
     return NextResponse.json({ url: liveUrl });
   } catch (error) {
