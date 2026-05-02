@@ -32,7 +32,7 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'gemma2',
+            model: 'gemma4:e4b',
             prompt: `${SYSTEM_PROMPT}\n\nUser description: ${prompt}`,
             stream: false,
           }),
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         const isAbort = ollamaError instanceof Error && ollamaError.name === 'AbortError';
         const message = isAbort
           ? 'Generation timed out. Local models can be slow; check your system resources.'
-          : 'Local model failed: Make sure Ollama is running and you have run "ollama pull gemma2"';
+          : 'Local model failed: Make sure Ollama is running and you have run "ollama pull gemma4:e4b"';
         return NextResponse.json({ error: message }, { status: 503 });
       }
     } else {

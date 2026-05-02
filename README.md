@@ -34,11 +34,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Option B: Local Gemma (On-Device)
 To run models locally without an API key, SiteGen uses **Ollama**.
 1. **Install Ollama**: Download and install from [ollama.com](https://ollama.com/).
-2. **Download Gemma 2**: Open your terminal and run:
+2. **Download Gemma 4**: Open your terminal and run:
    ```bash
-   ollama pull gemma2
+   ollama pull gemma4:e4b
    ```
-   *(Note: We recommend Gemma 2 for the best results in code generation.)*
 3. **Keep Ollama Running**: Ensure the Ollama application is active while using SiteGen.
 4. **Select "Local Gemma"**: Toggle the provider on the SiteGen dashboard.
 
@@ -61,6 +60,6 @@ To run models locally without an API key, SiteGen uses **Ollama**.
 - **Relative Paths**: All assets and links are relative, ensuring compatibility with GitHub Pages subfolder hosting.
 
 ## 🛠 Tech Stack
-- **Frontend**: Next.js 15+, React 19, Tailwind CSS
-- **LLM**: Google Gemini SDK / Ollama API
+- **Frontend**: Next.js 16, React 19, Tailwind CSS
+- **LLM**: Google Gemini SDK (@google/generative-ai) / Ollama API
 - **Automation**: Node.js `child_process` for Git/GitHub CLI integration
