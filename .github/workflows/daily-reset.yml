@@ -1,0 +1,52 @@
+name: Daily Portfolio Reset
+
+on:
+  schedule:
+    # 11:30 PM PT is 06:30 AM UTC (during Daylight Savings)
+    - cron: '30 6 * * *'
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "SiteGen Bot"
+          git config --global user.email "bot@sitegen.local"
+
+      - name: Archive Daily Sites & Reset Landing Page
+        run: |
+          # 1. Restore the landing page from template
+          cp assets/landing-template.html index.html
+          
+          # 2. Archive any sites from the generated-sites folder
+          # We move them to an archive folder instead of deleting them
+          DATE_STR=$(date +'%Y%m%d')
+          mkdir -p archive/$DATE_STR
+          
+          # Check if there are any folders to move (excluding .gitkeep)
+          if [ "$(ls -A generated-sites | grep -v '.gitkeep')" ]; then
+            mv generated-sites/* archive/$DATE_STR/ 2>/dev/null || true
+            # Restore the .gitkeep if it was accidentally moved
+            touch generated-sites/.gitkeep
+          fi
+          
+          # 3. Commit and Push
+          git add index.html archive/ generated-sites/
+          
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "Daily Reset: Restored landing page and archived sites for $DATE_STR"
+            git push origin main
+          else
+            echo "No changes to commit."
+          fi
