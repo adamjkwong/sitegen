@@ -27,7 +27,12 @@ export default function Home() {
 
     try {
       // Step 1: Generate Site content
-      addStatus(`Calling ${provider === 'gemini-cloud' ? 'Gemini Cloud' : 'Local Gemma'}...`, 'info');
+      const providerName = provider === 'gemini-cloud' ? 'Gemini Cloud' : 'Local Gemma';
+      addStatus(`Calling ${providerName}...`, 'info');
+      if (provider === 'gemma-local') {
+        addStatus('Local generation can take 2-5 minutes depending on your system resources.', 'info');
+      }
+      
       const genResponse = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     if (provider === 'gemma-local') {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000); // Increased to 90s for Gemma 4
+        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for local model
 
         const response = await fetch('http://localhost:11434/api/generate', {
           method: 'POST',
