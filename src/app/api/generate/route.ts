@@ -4,18 +4,17 @@ import { NextResponse } from 'next/server';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const SYSTEM_PROMPT = `
-  You are an expert web developer specializing in high-quality, static, informational websites.
-  Your task is to generate a modern and visually appealing website based on the user's description.
+  You are an expert web developer. Generate a single-file, high-quality, modern, responsive static website.
   
-  CRITICAL SECURITY & ARCHITECTURAL REQUIREMENTS:
-  1. STATIC CONTENT ONLY: The website must be strictly for visual and text output.
-  2. NO INTERACTIVITY: NEVER include <form>, <input>, <textarea>, <button> (unless for navigation), or any other data-entry elements.
-  3. NO DATA COLLECTION: Do not include any scripts that attempt to collect user data, track users, or send data to external servers.
-  4. OUTPUT ONLY index.html: Include ALL necessary CSS and JavaScript (internal) in one file.
-  5. Use modern, responsive design. Tailwind CSS via CDN is permitted: <script src="https://cdn.tailwindcss.com"></script>
-  6. ASSET PATHS: All internal links and references must be RELATIVE (e.g., "index.html#about").
-  7. DO NOT include markdown formatting. Just raw HTML.
-  8. NO EXTERNAL SCRIPTS: Other than Tailwind CDN, do not include external JS libraries or APIs.
+  RULES:
+  1. OUTPUT ONLY RAW HTML. DO NOT include any markdown backticks (e.g., \`\`\`html) or conversational text.
+  2. START IMMEDIATELY with <!DOCTYPE html>.
+  3. END with </html>.
+  4. NO INTERACTIVITY: No <form>, <input>, <textarea>, or <button> (unless for internal navigation).
+  5. TAILWIND ONLY: Use <script src="https://cdn.tailwindcss.com"></script> for styling. Do not use external CSS files.
+  6. ALL-IN-ONE: Include all CSS and JS (if any) inside the single HTML file.
+  7. ASSETS: Use placeholder images (e.g., from Unsplash) and relative links for internal navigation.
+  8. NO EXPLANATIONS: Do not say "Sure," "Here is," or any other text before or after the code.
 `;
 
 export async function POST(req: Request) {
@@ -26,15 +25,19 @@ export async function POST(req: Request) {
     if (provider === 'gemma-local') {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for local model
+        const timeoutId = setTimeout(() => controller.abort(), 90000); // Increased to 90s for Gemma 4
 
         const response = await fetch('http://localhost:11434/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'gemma4:e4b',
-            prompt: `${SYSTEM_PROMPT}\n\nUser description: ${prompt}`,
+            prompt: `[INST] ${SYSTEM_PROMPT}\n\nUser description: ${prompt} [/INST]`,
             stream: false,
+            options: {
+              temperature: 0.2, // Lower temperature for more consistent code output
+              num_predict: 4096, // Ensure enough tokens for a full website
+            }
           }),
           signal: controller.signal,
         });
@@ -68,13 +71,21 @@ export async function POST(req: Request) {
       html = response.text().trim();
     }
 
-    // Robust markdown stripping: Extract content between triple backticks if present
-    const match = html.match(/```(?:html)?\n?([\s\S]*?)```/);
-    if (match && match[1]) {
-      html = match[1].trim();
+    // Robust extraction: Find the first <html> and last </html> if present, 
+    // or just strip markdown if the model ignored the "raw" instruction.
+    const htmlStart = html.toLowerCase().indexOf('<!doctype');
+    const htmlEnd = html.toLowerCase().lastIndexOf('</html>');
+
+    if (htmlStart !== -1 && htmlEnd !== -1 && htmlEnd > htmlStart) {
+      html = html.substring(htmlStart, htmlEnd + 7);
     } else {
-      // Fallback: strip any remaining markdown wrappers if they were only at the ends
-      html = html.replace(/^```html\n/, '').replace(/\n```$/, '').trim();
+      // Fallback: strip markdown wrappers
+      const match = html.match(/```(?:html)?\n?([\s\S]*?)```/);
+      if (match && match[1]) {
+        html = match[1].trim();
+      } else {
+        html = html.replace(/^```html\n/, '').replace(/\n```$/, '').trim();
+      }
     }
 
     // Improved Slug Sanitization
