@@ -1,7 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const SYSTEM_PROMPT = `
   You are an expert web developer. Generate a single-file, high-quality, modern, responsive static website.
@@ -19,56 +16,42 @@ const SYSTEM_PROMPT = `
 
 export async function POST(req: Request) {
   try {
-    const { prompt, provider } = await req.json();
+    const { prompt } = await req.json();
     let html = '';
 
-    if (provider === 'gemma-local') {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for local model
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for local model
 
-        const response = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gemma4:e4b',
-            prompt: `[INST] ${SYSTEM_PROMPT}\n\nUser description: ${prompt} [/INST]`,
-            stream: false,
-            options: {
-              temperature: 0.2, // Lower temperature for more consistent code output
-              num_predict: 4096, // Ensure enough tokens for a full website
-            }
-          }),
-          signal: controller.signal,
-        });
+      const response = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemma4:e4b',
+          prompt: `[INST] ${SYSTEM_PROMPT}\n\nUser description: ${prompt} [/INST]`,
+          stream: false,
+          options: {
+            temperature: 0.2, 
+            num_predict: 4096, 
+          }
+        }),
+        signal: controller.signal,
+      });
 
-        clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          throw new Error('Ollama service not responding. Make sure Ollama is running.');
-        }
-
-        const data = await response.json();
-        html = data.response.trim();
-      } catch (ollamaError: unknown) {
-        const isAbort = ollamaError instanceof Error && ollamaError.name === 'AbortError';
-        const message = isAbort
-          ? 'Generation timed out. Local models can be slow; check your system resources.'
-          : 'Local model failed: Make sure Ollama is running and you have run "ollama pull gemma4:e4b"';
-        return NextResponse.json({ error: message }, { status: 503 });
-      }
-    } else {
-      if (!process.env.GEMINI_API_KEY) {
-        return NextResponse.json(
-          { error: 'GEMINI_API_KEY is not configured in .env.local' },
-          { status: 500 }
-        );
+      if (!response.ok) {
+        throw new Error('Ollama service not responding. Make sure Ollama is running.');
       }
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const result = await model.generateContent([SYSTEM_PROMPT, `User description: ${prompt}`]);
-      const response = await result.response;
-      html = response.text().trim();
+      const data = await response.json();
+      html = data.response.trim();
+    } catch (ollamaError: unknown) {
+      const isAbort = ollamaError instanceof Error && ollamaError.name === 'AbortError';
+      const message = isAbort
+        ? 'Generation timed out. Local models can be slow; check your system resources.'
+        : 'Local model failed: Make sure Ollama is running and you have run "ollama pull gemma4:e4b"';
+      return NextResponse.json({ error: message }, { status: 503 });
     }
 
     // Robust extraction: Find the first <html> and last </html> if present, 

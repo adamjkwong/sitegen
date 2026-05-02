@@ -1,13 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Globe, Cpu, Cloud, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
-
-type ModelProvider = 'gemini-cloud' | 'gemma-local';
+import { Sparkles, Globe, Cpu, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
-  const [provider, setProvider] = useState<ModelProvider>('gemini-cloud');
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' | 'error' }[]>([]);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -23,20 +20,17 @@ export default function Home() {
     setIsGenerating(true);
     setStatus([]);
     setPublishedUrl(null);
-    addStatus('Initiating generation process...', 'info');
+    addStatus('Initiating private local generation...', 'info');
 
     try {
       // Step 1: Generate Site content
-      const providerName = provider === 'gemini-cloud' ? 'Gemini Cloud' : 'Local Gemma';
-      addStatus(`Calling ${providerName}...`, 'info');
-      if (provider === 'gemma-local') {
-        addStatus('Local generation can take 2-5 minutes depending on your system resources.', 'info');
-      }
+      addStatus('Calling Local Gemma (gemma4:e4b)...', 'info');
+      addStatus('Local generation can take 2-5 minutes depending on your system resources.', 'info');
       
       const genResponse = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, provider }),
+        body: JSON.stringify({ prompt }),
       });
 
       if (!genResponse.ok) {
@@ -75,46 +69,18 @@ export default function Home() {
         <div className="text-center mb-12">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
-              <Sparkles className="w-8 h-8 text-white" />
+              <Cpu className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">SiteGen</h1>
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">SiteGen Local</h1>
           <p className="mt-3 text-lg text-gray-500">
-            One-shot website generation & instant publishing.
+            One-shot private website generation & instant publishing.
           </p>
         </div>
 
         {/* Dashboard Card */}
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
           <form onSubmit={handleGenerate} className="p-8 space-y-8">
-            {/* Model Selection */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setProvider('gemini-cloud')}
-                className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 ${
-                  provider === 'gemini-cloud'
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                }`}
-              >
-                <Cloud className={`w-5 h-5 mr-3 ${provider === 'gemini-cloud' ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className="font-semibold text-sm tracking-wide">Gemini Cloud</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setProvider('gemma-local')}
-                className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 ${
-                  provider === 'gemma-local'
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                }`}
-              >
-                <Cpu className={`w-5 h-5 mr-3 ${provider === 'gemma-local' ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className="font-semibold text-sm tracking-wide">Local Gemma</span>
-              </button>
-            </div>
-
             {/* Prompt Input */}
             <div className="space-y-3">
               <label htmlFor="prompt" className="block text-sm font-bold text-gray-700 uppercase tracking-widest">
@@ -129,7 +95,7 @@ export default function Home() {
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isGenerating}
               />
-              <p className="text-xs text-gray-400 italic">Describe your vision in 1-3 sentences.</p>
+              <p className="text-xs text-gray-400 italic">Describe your vision in 1-3 sentences. Private & Local.</p>
             </div>
 
             {/* Action Button */}
@@ -145,11 +111,11 @@ export default function Home() {
               {isGenerating ? (
                 <>
                   <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                  Generating...
+                  Generating Privately...
                 </>
               ) : (
                 <>
-                  <Globe className="w-6 h-6 mr-3" />
+                  <Sparkles className="w-6 h-6 mr-3" />
                   Generate & Publish
                 </>
               )}
