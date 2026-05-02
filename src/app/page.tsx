@@ -34,7 +34,11 @@ export default function Home() {
         body: JSON.stringify({ prompt, provider }),
       });
 
-      if (!genResponse.ok) throw new Error('Generation failed');
+      if (!genResponse.ok) {
+        const errorData = await genResponse.json();
+        throw new Error(errorData.error || 'Generation failed');
+      }
+
       const { html, slug } = await genResponse.json();
       addStatus('Website content generated successfully!', 'success');
 
